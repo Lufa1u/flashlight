@@ -1,49 +1,54 @@
-from fastapi import APIRouter, FastAPI
+from fastapi import FastAPI
 from pydantic import BaseModel
 import uvicorn
 
-
 app = FastAPI()
-router = APIRouter()
 
 
 class Command(BaseModel):
     command: str
-    metadata: str | None = None
+    metadata: float = None
 
 
-@router.post(path="/on_flashlight", response_model=str | None, status_code=200)
-async def on_flashlight(command: Command):
-    if command.command == "ON":
-        return "Flashlight was on"
+async def process_command(command, metadata):
+    if command == "ON":
+        return await turn_on()
+    elif command == "OFF":
+        return await turn_off()
+    elif command == "COLOR":
+        return await change_color(metadata)
+    else:
+        pass
 
 
-@router.post(path="/off_flashlight", response_model=str | None, status_code=200)
-async def off_flashlight(command: Command):
-    if command.command == "OFF":
-        return "Flashlight was off"
+async def turn_on():
+    message = "Lamp turned on"
+    print(message)
+    return message
 
 
-@router.post(path="/flashlight_color", response_model=str | None, status_code=200)
-async def flashlight_color(command: Command):
-    if command.command == "COLOR" and command.metadata:
-        return f"Flashlight color changed to {command.metadata}"
+async def turn_off():
+    message = "Lamp turned off"
+    print(message)
+    return message
 
 
-app.include_router(router=router, prefix="/flashlight", tags=["FLASHLIGHT"])
+async def change_color(color):
+    message = f"Lamp color changed to {color}"
+    print(message)
+    return message
 
 
-def connect(app: FastAPI, host: str, port: int):
-    uvicorn.run(app=app, host=host, port=port)
+@app.post("/")
+async def handle_command(command: Command):
+    return await process_command(command.command, command.metadata)
 
 
 if __name__ == "__main__":
-    host = input("Enter host: ")
-    port = input("Enter port: ")
-    if host and port:
-        try:
-            connect(app=app, host=host, port=int(port))
-        except:
-            print("Incorrect host or port.")
-    else:
-        connect(app=app, host="127.0.0.1", port=9999)
+    host = input("Введите хост (по умолчанию 127.0.0.1): ") or '127.0.0.1'
+    port = input("Введите порт (по умолчанию 9999): ") or '9999'
+    try:
+        uvicorn.run(app, host=host, port=int(port))
+    except:
+        print(f"Wrong host or port.")
+
